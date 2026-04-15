@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Haider Afridi - Link Generator</title>
+
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial;
+            margin-top: 80px;
+        }
+
+        input {
+            width: 400px;
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 15px;
+            margin: 10px;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        #msg {
+            color: green;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<h2>🔗 Generate Tracking Link</h2>
+<p>Haider Afridi Ethical Tool</p>
+
+<input type="text" id="linkBox" value="{{link}}" readonly>
+
+<br>
+
+<button onclick="copyLink()">📋 Copy Link</button>
+<button onclick="openLink()">🌐 Open Link</button>
+<button onclick="newLink()">🔄 New Link</button>
+<button onclick="sendWhatsApp()">📱 WhatsApp</button>
+
+<p id="msg"></p>
+
+<script>
+function copyLink() {
+    var copyText = document.getElementById("linkBox");
+    copyText.select();
+    document.execCommand("copy");
+    document.getElementById("msg").innerHTML = "✅ Link Copied!";
+}
+
+function openLink() {
+    var link = document.getElementById("linkBox").value;
+    window.open(link, '_blank');
+}
+
+function newLink() {
+    location.reload();
+}
+
+function sendWhatsApp() {
+    var link = document.getElementById("linkBox").value;
+    var msg = "Please open this link: " + link;
+    window.open("https://wa.me/?text=" + encodeURIComponent(msg));
+}
+</script>
+
+</body>
+</html>
