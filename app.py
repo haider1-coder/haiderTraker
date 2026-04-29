@@ -1,6 +1,10 @@
 from flask import Flask, render_template, request, redirect, url_for
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+import os
+import re
 import sqlite3, uuid
+import subprocess
+import threading
 from datetime import datetime
 
 app = Flask(__name__)
@@ -30,6 +34,65 @@ def init_db():
 
 init_db()
 
+cloudflare_process = None
+cloudflare_public_url = ""
+cloudflare_status = "not_started"
+
+
+def _cloudflare_output_reader(process):
+    global cloudflare_public_url, cloudflare_status
+    url_pattern = re.compile(r"https://[a-zA-Z0-9\-]+\.trycloudflare\.com")
+
+    for line in process.stdout:
+        match = url_pattern.search(line)
+        if match:
+            cloudflare_public_url = match.group(0)
+            cloudflare_status = "running"
+
+    if cloudflare_status != "running":
+        cloudflare_status = "stopped"
+
+
+def start_cloudflare_tunnel():
+    global cloudflare_process, cloudflare_status
+
+    # Skip if user provided a fixed public URL manually.
+    if os.getenv("PUBLIC_BASE_URL", "").strip():
+        cloudflare_status = "using_env_url"
+        return
+
+    if cloudflare_process and cloudflare_process.poll() is None:
+        return
+
+    try:
+        cloudflare_status = "starting"
+        cloudflare_process = subprocess.Popen(
+            ["cloudflared", "tunnel", "--url", "http://localhost:5000"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1
+        )
+        reader_thread = threading.Thread(
+            target=_cloudflare_output_reader,
+            args=(cloudflare_process,),
+            daemon=True
+        )
+        reader_thread.start()
+    except FileNotFoundError:
+        cloudflare_status = "missing_cloudflared"
+    except Exception:
+        cloudflare_status = "error"
+
+
+def build_tracking_link(uid):
+    public_base = os.getenv("PUBLIC_BASE_URL", "").strip()
+    if public_base:
+        return f"{public_base.rstrip('/')}/track/{uid}"
+    if cloudflare_public_url:
+        return f"{cloudflare_public_url}/track/{uid}"
+    return request.host_url + "track/" + uid
+
 # LOGIN ON ROOT
 @app.route('/', methods=['GET', 'POST'])
 def root_login():
@@ -56,7 +119,7 @@ def login():
 @login_required
 def dashboard():
     uid = str(uuid.uuid4())[:8]
-    full_link = request.host_url + "track/" + uid
+    full_link = build_tracking_link(uid)
     
     # Get location data for the map
     conn = sqlite3.connect("database.db")
@@ -103,6 +166,16 @@ def api_data():
     conn.close()
     return {"locations": data}
 
+
+@app.route('/api/tunnel')
+@login_required
+def api_tunnel():
+    return {
+        "status": cloudflare_status,
+        "public_url": cloudflare_public_url,
+        "local_url": "http://localhost:5000"
+    }
+
 # LOGOUT
 @app.route('/logout')
 @login_required
@@ -111,4 +184,5 @@ def logout():
     return redirect(url_for('root_login'))
 
 if __name__ == "__main__":
+    start_cloudflare_tunnel()
     app.run(host="0.0.0.0", port=5000)
