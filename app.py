@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import sqlite3, uuid
 from datetime import datetime
 
@@ -8,6 +8,7 @@ app.secret_key = "haider_secret_key"
 
 login_manager = LoginManager()
 login_manager.init_app(app)
+login_manager.login_view = "root_login"
 
 # Dummy admin user
 class User(UserMixin):
@@ -29,9 +30,12 @@ def init_db():
 
 init_db()
 
-# LOGIN
-@app.route('/login', methods=['GET','POST'])
-def login():
+# LOGIN ON ROOT
+@app.route('/', methods=['GET', 'POST'])
+def root_login():
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -39,13 +43,18 @@ def login():
         if username == "admin" and password == "1234":
             user = User(id=1)
             login_user(user)
-            return redirect('/')
+            return redirect(url_for('dashboard'))
     return render_template("login.html")
 
+# OPTIONAL LOGIN ALIAS
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    return redirect(url_for('root_login'))
+
 # GENERATE LINK WITH MAP
-@app.route('/')
+@app.route('/dashboard')
 @login_required
-def home():
+def dashboard():
     uid = str(uuid.uuid4())[:8]
     full_link = request.host_url + "track/" + uid
     
@@ -99,7 +108,7 @@ def api_data():
 @login_required
 def logout():
     logout_user()
-    return redirect('/login')
+    return redirect(url_for('root_login'))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
