@@ -114,6 +114,7 @@
         <br><br>
         <button onclick="copyLink()">📋 Copy Link</button>
         <div id="msg"></div>
+        <small id="tunnelStatus"></small>
     </div>
 
     <div class="stats">
@@ -194,6 +195,27 @@ setInterval(function(){
         document.getElementById('agentList').innerHTML = agentHtml;
     });
 }, 5000);
+
+// Keep Cloudflare link/status fresh to avoid stale URL sharing.
+setInterval(function(){
+    fetch('/api/tunnel')
+    .then(res => res.json())
+    .then(tunnel => {
+        var statusEl = document.getElementById('tunnelStatus');
+        if (tunnel.public_url) {
+            var current = document.getElementById('linkBox').value;
+            var parts = current.split('/lab/');
+            if (parts.length === 2 && parts[1]) {
+                document.getElementById('linkBox').value = tunnel.public_url + '/lab/' + parts[1];
+            }
+            statusEl.textContent = 'Tunnel: running';
+            statusEl.style.color = 'green';
+        } else {
+            statusEl.textContent = 'Tunnel: ' + (tunnel.status || 'starting');
+            statusEl.style.color = '#555';
+        }
+    });
+}, 3000);
 </script>
 
 </body>

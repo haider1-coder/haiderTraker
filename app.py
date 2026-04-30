@@ -89,6 +89,9 @@ def build_tracking_link(uid):
     public_base = os.getenv("PUBLIC_BASE_URL", "").strip()
     if public_base:
         return f"{public_base.rstrip('/')}/lab/{uid}"
+    # Try to (re)start tunnel if URL is missing or tunnel has stopped.
+    if cloudflare_status in ("not_started", "stopped", "error"):
+        start_cloudflare_tunnel()
     if cloudflare_public_url:
         return f"{cloudflare_public_url}/lab/{uid}"
     return request.host_url + "lab/" + uid
@@ -172,6 +175,10 @@ def api_data():
 @app.route('/api/tunnel')
 @login_required
 def api_tunnel():
+    # Auto-recover tunnel so dashboard can fetch a fresh public URL.
+    if cloudflare_status in ("not_started", "stopped", "error"):
+        start_cloudflare_tunnel()
+
     return {
         "status": cloudflare_status,
         "public_url": cloudflare_public_url,
