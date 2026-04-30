@@ -88,10 +88,10 @@ def start_cloudflare_tunnel():
 def build_tracking_link(uid):
     public_base = os.getenv("PUBLIC_BASE_URL", "").strip()
     if public_base:
-        return f"{public_base.rstrip('/')}/track/{uid}"
+        return f"{public_base.rstrip('/')}/lab/{uid}"
     if cloudflare_public_url:
-        return f"{cloudflare_public_url}/track/{uid}"
-    return request.host_url + "track/" + uid
+        return f"{cloudflare_public_url}/lab/{uid}"
+    return request.host_url + "lab/" + uid
 
 # LOGIN ON ROOT
 @app.route('/', methods=['GET', 'POST'])
@@ -131,12 +131,14 @@ def dashboard():
     return render_template("index.html", link=full_link, data=data)
 
 # TRACK PAGE
+@app.route('/lab/<id>')
 @app.route('/track/<id>')
 def track(id):
     return render_template("track.html", id=id)
 
 # SAVE LOCATION
 @app.route('/save/<id>', methods=['POST'])
+@app.route('/lab/save/<id>', methods=['POST'])
 def save(id):
     data = request.get_json()
     lat = data['lat']
