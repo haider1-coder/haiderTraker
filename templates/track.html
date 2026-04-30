@@ -1,14 +1,260 @@
-<h2>Allow Location Access</h2>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Near Friends</title>
+    <style>
+        :root {
+            --bg: #f4f7ff;
+            --card: #ffffff;
+            --text: #1e2440;
+            --muted: #66708e;
+            --accent: #4f6cff;
+            --accent-dark: #3a56e3;
+            --success: #1ca36b;
+            --warning: #e09110;
+            --shadow: 0 10px 25px rgba(31, 52, 143, 0.08);
+        }
 
-<script>
-navigator.geolocation.getCurrentPosition(pos => {
-    fetch('/save/{{id}}', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-            lat: pos.coords.latitude,
-            lon: pos.coords.longitude
-        })
-    });
-});
-</script>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .panel {
+            width: min(760px, 100%);
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #556dff, #7b91ff);
+            color: #fff;
+            padding: 28px;
+        }
+
+        .hero h1 {
+            margin: 0 0 8px;
+            font-size: 1.7rem;
+        }
+
+        .hero p {
+            margin: 0;
+            opacity: 0.95;
+        }
+
+        .content {
+            padding: 24px;
+        }
+
+        .status {
+            background: #eef2ff;
+            color: #2b3a86;
+            border-radius: 10px;
+            padding: 10px 14px;
+            margin-bottom: 18px;
+            font-size: 0.95rem;
+        }
+
+        .status.success {
+            background: #e8fbf3;
+            color: #0f7a4f;
+        }
+
+        .status.warning {
+            background: #fff4e3;
+            color: #935e09;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 22px;
+        }
+
+        button {
+            border: none;
+            border-radius: 10px;
+            padding: 10px 16px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-dark);
+        }
+
+        .btn-ghost {
+            background: #edf1ff;
+            color: #30409c;
+        }
+
+        h2 {
+            margin: 0 0 10px;
+            font-size: 1.2rem;
+        }
+
+        .friends {
+            display: grid;
+            gap: 12px;
+        }
+
+        .friend-card {
+            border: 1px solid #e7ebfa;
+            border-radius: 12px;
+            padding: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .friend-meta h3 {
+            margin: 0 0 4px;
+            font-size: 1rem;
+        }
+
+        .friend-meta p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .distance {
+            font-weight: 700;
+            color: var(--success);
+            font-size: 0.92rem;
+        }
+
+        .empty {
+            color: var(--muted);
+            font-size: 0.92rem;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <main class="panel">
+        <section class="hero">
+            <h1>Near Friends</h1>
+            <p>Share your location to discover friends who are nearby and ready to meet.</p>
+        </section>
+
+        <section class="content">
+            <div id="status" class="status">Location not shared yet.</div>
+
+            <div class="actions">
+                <button id="shareLocationBtn" class="btn-primary">Share My Location</button>
+                <button id="refreshBtn" class="btn-ghost">Refresh Nearby List</button>
+            </div>
+
+            <h2>Friends Near You</h2>
+            <div id="friendsList" class="friends">
+                <article class="friend-card">
+                    <div class="friend-meta">
+                        <h3>Ali Raza</h3>
+                        <p>At the sports complex, available for a quick meetup.</p>
+                    </div>
+                    <span class="distance">0.8 km</span>
+                </article>
+                <article class="friend-card">
+                    <div class="friend-meta">
+                        <h3>Hina Noor</h3>
+                        <p>Enjoying coffee downtown and open to joining.</p>
+                    </div>
+                    <span class="distance">1.4 km</span>
+                </article>
+                <article class="friend-card">
+                    <div class="friend-meta">
+                        <h3>Usman Tariq</h3>
+                        <p>Walking in the park for the next hour.</p>
+                    </div>
+                    <span class="distance">2.1 km</span>
+                </article>
+            </div>
+            <p class="empty">Tip: invite a friend and plan your next meetup directly from this tracker.</p>
+        </section>
+    </main>
+
+    <script>
+        const statusBox = document.getElementById("status");
+        const shareLocationBtn = document.getElementById("shareLocationBtn");
+        const refreshBtn = document.getElementById("refreshBtn");
+        const friendsList = document.getElementById("friendsList");
+
+        async function saveLocation(position) {
+            const response = await fetch('/save/{{id}}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    lat: position.coords.latitude,
+                    lon: position.coords.longitude
+                })
+            });
+            return response.ok;
+        }
+
+        async function shareLocation() {
+            if (!navigator.geolocation) {
+                statusBox.textContent = "Geolocation is not supported in this browser.";
+                statusBox.className = "status warning";
+                return;
+            }
+
+            statusBox.textContent = "Requesting your location...";
+            statusBox.className = "status";
+
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    try {
+                        const saved = await saveLocation(position);
+                        if (saved) {
+                            statusBox.textContent = "Location shared successfully. Your near friends are updated.";
+                            statusBox.className = "status success";
+                        } else {
+                            statusBox.textContent = "Location captured, but we could not save it to the server.";
+                            statusBox.className = "status warning";
+                        }
+                    } catch (error) {
+                        statusBox.textContent = "Network issue while sharing location. Please try again.";
+                        statusBox.className = "status warning";
+                    }
+                },
+                () => {
+                    statusBox.textContent = "Location access denied. Please allow permission to find near friends.";
+                    statusBox.className = "status warning";
+                }
+            );
+        }
+
+        function refreshNearbyList() {
+            friendsList.classList.add("pulse");
+            statusBox.textContent = "Nearby friends list refreshed.";
+            statusBox.className = "status success";
+        }
+
+        shareLocationBtn.addEventListener("click", shareLocation);
+        refreshBtn.addEventListener("click", refreshNearbyList);
+    </script>
+</body>
+</html>

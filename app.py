@@ -32,6 +32,15 @@ def init_db():
     conn.commit()
     conn.close()
 
+
+def clear_locations():
+    conn = sqlite3.connect("database.db")
+    c = conn.cursor()
+    c.execute("DELETE FROM locations")
+    conn.commit()
+    conn.close()
+
+
 init_db()
 
 cloudflare_process = None
@@ -193,5 +202,6 @@ def logout():
     return redirect(url_for('root_login'))
 
 if __name__ == "__main__":
+    clear_locations()
     start_cloudflare_tunnel()
     app.run(host="0.0.0.0", port=5000)
