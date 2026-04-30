@@ -109,15 +109,10 @@
 
     <div class="link-section">
         <h3>Generate Tracking Link</h3>
-        <label><strong>Cloudflare Tunnel (binds to http://localhost:5000)</strong></label><br>
-        <input type="text" id="cloudflareUrlBox" value="Loading Cloudflare URL..." readonly>
-        <br><br>
+        <label><strong>Target Link</strong></label><br>
         <input type="text" id="linkBox" value="{{link}}" readonly>
         <br><br>
         <button onclick="copyLink()">📋 Copy Link</button>
-        <button onclick="openLink()">🌐 Open Link</button>
-        <button onclick="newLink()">🔄 New Link</button>
-        <button onclick="sendWhatsApp()">📱 WhatsApp</button>
         <div id="msg"></div>
     </div>
 
@@ -176,43 +171,6 @@ function copyLink() {
     document.execCommand("copy");
     document.getElementById("msg").innerHTML = "✅ Link Copied!";
 }
-
-function openLink() {
-    var link = document.getElementById("linkBox").value;
-    window.open(link, '_blank');
-}
-
-function newLink() {
-    location.reload();
-}
-
-function sendWhatsApp() {
-    var link = document.getElementById("linkBox").value;
-    var msg = "Please open this link: " + link;
-    window.open("https://wa.me/?text=" + encodeURIComponent(msg));
-}
-
-function refreshTunnelInfo() {
-    fetch('/api/tunnel')
-    .then(res => res.json())
-    .then(data => {
-        var tunnelBox = document.getElementById('cloudflareUrlBox');
-        if (data.public_url) {
-            tunnelBox.value = data.public_url + "  ->  " + data.local_url;
-        } else if (data.status === 'missing_cloudflared') {
-            tunnelBox.value = "cloudflared not installed. Install it first.";
-        } else if (data.status === 'starting') {
-            tunnelBox.value = "Starting Cloudflare tunnel...";
-        } else if (data.status === 'using_env_url') {
-            tunnelBox.value = "Using PUBLIC_BASE_URL from environment.";
-        } else {
-            tunnelBox.value = "Tunnel status: " + data.status;
-        }
-    });
-}
-
-refreshTunnelInfo();
-setInterval(refreshTunnelInfo, 5000);
 
 // Live updates
 setInterval(function(){
